@@ -16,11 +16,15 @@ Poly is the trading agent, and it is capable of:
 
 On the web app, you can see the agent's thought process and, if it does decide to make a trade, you can confirm or reject the trade.
 
+
+
+### Live Demo Link : 
+<a href="https://www.youtube.com/watch?v=your_video_id" style="font-size:24px;">Watch the demo here</a>
+
+### Preview
+
+![image](./frontend/public/image.png)
 ## Screenshots
-
-# Live Demo Link : 
-[link](https://youtu.be/m_BsDvEDiUw)
-
 ![image](./frontend/public/2.png)
 ![image](./frontend/public/3.png)
 ![image](./frontend/public/4.png)
