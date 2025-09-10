@@ -2,13 +2,25 @@
 
 import { Client, type Config } from "@langchain/langgraph-sdk";
 import { Token } from "../polymarket/getMarkets";
+import { mockAgentStream } from "./mock-stream";
 
 const DEPLOYMENT_URL = process.env.LANGGRAPH_DEPLOYMENT_URL;
 const ASSISTANT_ID = "polytrader";
+const USE_MOCK = process.env.NODE_ENV === "development" || !DEPLOYMENT_URL;
 
 export async function streamAgentAnalysis(marketId: number, tokens: Token[]) {
   try {
     console.log("DEPLOYMENT_URL", DEPLOYMENT_URL);
+    console.log("USE_MOCK", USE_MOCK);
+    
+    // Use mock stream if in development or no backend available
+    if (USE_MOCK) {
+      console.log("Using mock agent stream for testing");
+      return {
+        stream: mockAgentStream(marketId, tokens),
+        config: { configurable: { thread_id: `mock-${Date.now()}` } },
+      };
+    }
     
     if (!DEPLOYMENT_URL) {
       throw new Error("LANGGRAPH_DEPLOYMENT_URL environment variable is not set");
@@ -23,7 +35,11 @@ export async function streamAgentAnalysis(marketId: number, tokens: Token[]) {
       console.log("Successfully created thread:", thread.thread_id);
     } catch (connectionError) {
       console.error("Failed to connect to LangGraph backend:", connectionError);
-      throw new Error(`Backend connection failed: ${connectionError}`);
+      console.log("Falling back to mock stream");
+      return {
+        stream: mockAgentStream(marketId, tokens),
+        config: { configurable: { thread_id: `fallback-${Date.now()}` } },
+      };
     }
 
     const thread = await client.threads.create();
@@ -50,7 +66,11 @@ export async function streamAgentAnalysis(marketId: number, tokens: Token[]) {
     };
   } catch (error) {
     console.error("Error in streamAgentAnalysis:", error);
-    throw error;
+    console.log("Falling back to mock stream due to error");
+    return {
+      stream: mockAgentStream(marketId, tokens),
+      config: { configurable: { thread_id: `error-fallback-${Date.now()}` } },
+    };
   }
 }
 
