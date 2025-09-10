@@ -19,7 +19,6 @@ import {
   AnalysisInfo,
   TradeInfo,
   ReflectionArtifact,
-  StreamChunk,
 } from "@/types/agent-stream-types";
 import TradeExecutionCard from "@/components/trade-execution-card";
 
@@ -41,13 +40,12 @@ interface StreamingAgentConsoleProps {
 
 export default function StreamingAgentConsole({
   isStreaming,
-  streamOutput,
   agentEvents,
   onTradeConfirmation,
-}: StreamingAgentConsoleProps) {
+}: Omit<StreamingAgentConsoleProps, 'streamOutput'>) {
   const [showTradeConfirmation, setShowTradeConfirmation] = useState(false);
   const [tradeToConfirm, setTradeToConfirm] = useState<TradeInfo | null>(null);
-  const [metadata, setMetadata] = useState<{
+  const [,] = useState<{
     run_id: string;
     attempt: number;
   } | null>(null);
@@ -56,12 +54,12 @@ export default function StreamingAgentConsole({
   const { toast } = useToast();
 
   // Track research and trade data for tabs
-  const [researchData, setResearchData] = useState<{
+  const [, setResearchData] = useState<{
     report: string;
     learnings: string[];
     visited_urls?: string[];
   } | null>(null);
-  const [tradeData, setTradeData] = useState<{
+  const [, setTradeData] = useState<{
     orderID: string;
     takingAmount: string;
     makingAmount: string;
@@ -70,8 +68,6 @@ export default function StreamingAgentConsole({
     success: boolean;
     errorMsg?: string;
   } | null>(null);
-
-  const { dismiss } = useToast();
 
   const scrollToBottom = useCallback(() => {
     if (containerRef.current) {
@@ -119,9 +115,9 @@ export default function StreamingAgentConsole({
   // Process events to update research and trade data
   useEffect(() => {
     agentEvents.forEach((event) => {
-      if (event.name === "research_tools" && event.data.messages?.[0]) {
+      if (event.name === "research_tools" && event.data?.messages?.[0]) {
         try {
-          const data = JSON.parse(event.data.messages[0].content);
+          const data = JSON.parse(event.data?.messages?.[0]?.content || '{}');
           setResearchData({
             report: data.report,
             learnings: data.learnings,
@@ -132,9 +128,9 @@ export default function StreamingAgentConsole({
         }
       }
 
-      if (event.name === "process_human_input" && event.data.messages?.[0]) {
+      if (event.name === "process_human_input" && event.data?.messages?.[0]) {
         try {
-          const content = event.data.messages[0].content;
+          const content = event.data?.messages?.[0]?.content || '';
           if (content.includes("Trade executed successfully")) {
             const match = content.match(/Order response: ({.*})/);
             if (match) {
@@ -181,14 +177,6 @@ export default function StreamingAgentConsole({
           )}
         </div>
 
-        {metadata && (
-          <div className="border rounded-lg p-3 bg-gray-50 dark:bg-gray-900 text-sm mt-4">
-            <p className="font-semibold mb-1">Run ID:</p>
-            <p>{metadata.run_id}</p>
-            <p className="font-semibold mt-2 mb-1">Attempt:</p>
-            <p>{metadata.attempt}</p>
-          </div>
-        )}
 
         {/* <div className="mt-6">
           <AnalysisTabs
@@ -297,7 +285,29 @@ function AgentEventCard({
   name: string;
   data: AgentEvent["data"];
 }) {
-  console.log("data", data);
+  console.log("AgentEventCard - name:", name, "data:", data);
+  console.log("Data type:", typeof data, "Is array:", Array.isArray(data), "Keys:", data ? Object.keys(data) : 'none');
+  
+  // Return early if data is null or undefined, but allow empty objects
+  if (data === null || data === undefined) {
+    return (
+      <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">
+        <h3 className="font-bold text-lg text-primary mb-2">{name}</h3>
+        <p className="text-sm text-muted-foreground">No data available</p>
+      </div>
+    );
+  }
+  
+  // Check if data is an empty object
+  if (typeof data === 'object' && !Array.isArray(data) && Object.keys(data).length === 0) {
+    return (
+      <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">
+        <h3 className="font-bold text-lg text-primary mb-2">{name}</h3>
+        <p className="text-sm text-muted-foreground">Empty data object received</p>
+      </div>
+    );
+  }
+  
   switch (name) {
     case "fetch_market_data":
       return <FetchMarketDataCard data={data} />;
@@ -326,14 +336,14 @@ function AgentEventCard({
       // fallback
       console.log("Unknown node:", name);
       console.log("data", data);
-    // return (
-    //   <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">
-    //     <h3 className="font-bold text-lg mb-2">Unknown Node: {name}</h3>
-    //     <pre className="text-xs whitespace-pre-wrap">
-    //       {JSON.stringify(data, null, 2)}
-    //     </pre>
-    //   </div>
-    // );
+      return (
+        <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">
+          <h3 className="font-bold text-lg mb-2">Unknown Node: {name}</h3>
+          <pre className="text-xs whitespace-pre-wrap">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </div>
+      );
   }
 }
 
@@ -343,14 +353,24 @@ function AgentEventCard({
 
 /** 1) fetch_market_data node */
 function FetchMarketDataCard({ data }: { data: AgentEvent["data"] }) {
-  const messages = data.messages || [];
-  const marketData = data.market_data;
+  console.log("FetchMarketDataCard received data:", data);
+  
+  const messages = data?.messages || [];
+  const marketData = data?.market_data;
 
   return (
     <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">
       <h3 className="font-bold mb-2 text-lg text-primary">
         Market Data Fetched
       </h3>
+      
+      {/* Debug info */}
+      <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs">
+        <p>Messages count: {messages.length}</p>
+        <p>Market data exists: {marketData ? 'Yes' : 'No'}</p>
+        <p>Raw data keys: {data ? Object.keys(data).join(', ') : 'none'}</p>
+      </div>
+      
       {messages.length > 0 && (
         <div className="mb-2">
           {messages.map((msg: AgentMessage, idx: number) => (
@@ -360,6 +380,7 @@ function FetchMarketDataCard({ data }: { data: AgentEvent["data"] }) {
           ))}
         </div>
       )}
+      
       {marketData && (
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="market_data">
@@ -372,14 +393,20 @@ function FetchMarketDataCard({ data }: { data: AgentEvent["data"] }) {
           </AccordionItem>
         </Accordion>
       )}
+      
+      {!marketData && messages.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No market data or messages received from backend
+        </p>
+      )}
     </div>
   );
 }
 
 /** 2) research_tools node */
 function ResearchToolsCard({ data }: { data: AgentEvent["data"] }) {
-  const messages = data.messages || [];
-  const researchData = messages[0]?.content
+  const messages = data?.messages || [];
+  const researchData = messages && messages.length > 0 && messages[0]?.content
     ? JSON.parse(messages[0].content)
     : null;
 
@@ -407,7 +434,7 @@ function ResearchToolsCard({ data }: { data: AgentEvent["data"] }) {
 /** Shared ToolCallsCard component for displaying tool calls */
 function ToolCallsCard({ messages }: { messages: AgentMessage[] }) {
   // Get the last message's tool calls
-  const lastMessage = messages[messages.length - 1];
+  const lastMessage = messages && messages.length > 0 ? messages[messages.length - 1] : null;
   const toolCalls = lastMessage?.tool_calls || [];
 
   if (!toolCalls.length) return null;
@@ -436,8 +463,8 @@ function ToolCallsCard({ messages }: { messages: AgentMessage[] }) {
 
 /** 3) research_agent node */
 function ResearchAgentCard({ data }: { data: AgentEvent["data"] }) {
-  const ext = data.external_research_info as ExternalResearchInfo | undefined;
-  const messages = data.messages || [];
+  const ext = data?.external_research_info as ExternalResearchInfo | undefined;
+  const messages = data?.messages || [];
 
   console.log("messages", messages);
 
@@ -494,7 +521,7 @@ function ReflectionCard({
   data: AgentEvent["data"];
   agentType: string;
 }) {
-  const messages = data.messages || [];
+  const messages = data?.messages || [];
 
   // We'll look for reflection artifacts in the messages
   // Typically it's in the "additional_kwargs.artifact"
@@ -557,8 +584,8 @@ function ReflectionCard({
 
 /** 5) analysis_agent node */
 function AnalysisAgentCard({ data }: { data: AgentEvent["data"] }) {
-  const analysisInfo = data.analysis_info as AnalysisInfo | undefined;
-  const messages = data.messages || [];
+  const analysisInfo = data?.analysis_info as AnalysisInfo | undefined;
+  const messages = data?.messages || [];
 
   if (!analysisInfo) {
     return (

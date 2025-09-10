@@ -15,14 +15,13 @@ import json
 from typing import Any, Dict, List, Literal, Optional, cast
 from datetime import datetime
 
-from langchain.schema import AIMessage, BaseMessage, SystemMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, HumanMessage
 from langchain_core.messages import ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.types import interrupt, Command
 from pydantic import BaseModel, Field
-from langgraph.checkpoint.memory import MemorySaver
 
 
 from polytrader.configuration import Configuration
@@ -56,10 +55,15 @@ async def fetch_market_data(state: State) -> Dict[str, Any]:
     Fetch or refresh data from Gamma about the specified market_id.
     Store raw JSON in state.market_data for downstream usage.
     """
+    print(f"=== FETCH_MARKET_DATA START ===")
+    print(f"State market_id: {state.market_id}")
+    print(f"State tokens: {state.tokens}")
+    
     state.loop_step += 1
     market_id = state.market_id
 
     if market_id is None:
+        print("ERROR: No market_id provided")
         return {
             "messages": ["No market_id provided; skipping market data fetch."],
             "proceed": False,
@@ -76,6 +80,9 @@ async def fetch_market_data(state: State) -> Dict[str, Any]:
         if "clobTokenIds" in market_json:
             market_json["clobTokenIds"] = [str(tid) for tid in json.loads(market_json["clobTokenIds"])]
 
+        # Initialize tokens variable
+        tokens = state.tokens or []
+        
         if not state.tokens:
             print("SETTING TOKENS")
             # Parse outcomes from JSON string if needed
@@ -96,21 +103,32 @@ async def fetch_market_data(state: State) -> Dict[str, Any]:
             state.tokens = tokens
         else: 
             print("TOKENS ALREADY SET")
+            tokens = state.tokens
 
         state.market_data = market_json  # raw dict
         print("Raw market data as json:")
-        return {
+        print(json.dumps(market_json, indent=2))
+        
+        result = {
             "messages": [f"Fetched market data for ID={market_id}."],
             "proceed": True,
             "market_data": market_json,
             "tokens": tokens
         }
+        print(f"=== FETCH_MARKET_DATA RETURNING ===")
+        print(f"Result: {result}")
+        return result
+        
     except ValueError as e:
+        print(f"ValueError in fetch_market_data: {e}")
         return {
             "messages": [f"Invalid market ID format: {market_id}"],
             "proceed": False,
         }
     except Exception as e:
+        print(f"Exception in fetch_market_data: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             "messages": [f"Error fetching market data: {str(e)}"],
             "proceed": False,
@@ -268,7 +286,12 @@ Is this sufficient to proceed with market analysis? Give your reasoning.
 Consider factors like comprehensiveness, relevance, and reliability of sources. 
 If you don't think it's sufficient, be specific about what needs to be improved.
 
-When evaluating this research report, focus on how well it answers the core question: <question>{question}</question>. The priority is gathering relevant factual information and qualitative insights - do not worry about numerical analysis or quantitative metrics at this stage.
+CRITICAL: When evaluating this research report, focus on how well it answers the core question: <question>{question}</question>. 
+- The question asks about December 31, 2025 (THIS YEAR) - not future years
+- Prioritize 2025 forecasts and current market sentiment
+- Filter out long-term predictions beyond 2025
+- Include both bullish and bearish perspectives for 2025
+- Identify key risks and uncertainties for the 2025 timeline
 
 Research Information:
 Report: {report}
@@ -1355,10 +1378,6 @@ workflow.add_conditional_edges("human_confirmation_js", route_after_human_confir
 
 workflow.add_edge("process_human_input", "__end__")
 
-# Set up memory
-memory = MemorySaver()
-
-# Compile
-graph = workflow.compile(checkpointer=memory)
-# graph = workflow.compile()
+# Compile (LangGraph API handles persistence automatically)
+graph = workflow.compile()
 graph.name = "PolymarketAgent"

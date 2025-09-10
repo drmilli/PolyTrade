@@ -8,7 +8,7 @@ import { FilterBar } from "@/app/_components/filter-bar";
 import MarketList from "@/app/_components/market-list";
 import type { FilterState } from "@/app/_components/filter-bar";
 
-import { mapToFrontendMarkets } from "@/lib/utils";
+// import { mapToFrontendMarkets } from "@/lib/utils";
 
 interface DashboardClientProps {
   /**
@@ -24,7 +24,6 @@ interface DashboardClientProps {
  */
 export default function DashboardClient({
   initialMarkets = [],
-  tagId,
 }: DashboardClientProps) {
   const [markets, setMarkets] = useState<AdvancedMarket[]>(initialMarkets);
   const [loading, setLoading] = useState(true);
@@ -69,16 +68,18 @@ export default function DashboardClient({
     setLoading(true);
     startTransition(async () => {
       try {
+        console.log("Fetching markets with filters:", filters);
         const res = await getFilteredMarkets({
           ...filters,
           page: currentPage,
           limit: 12,
           tagId: filters.tagId === "all" ? undefined : filters.tagId,
         });
+        console.log("Received markets:", res.markets.length, "Total pages:", res.totalPages);
         setMarkets(res.markets);
         setTotalPages(res.totalPages);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching markets:", err);
       } finally {
         setLoading(false);
       }

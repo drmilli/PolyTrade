@@ -6,7 +6,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
-import { LogIn, LogOut, User, Wallet } from "lucide-react";
+import { LogIn, LogOut, Wallet } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,

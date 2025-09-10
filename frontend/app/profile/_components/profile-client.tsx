@@ -20,6 +20,12 @@ export default function ProfileClient() {
   const { address } = useAccount();
   const { writeContract, status, error, data } = useWriteContract();
 
+  // Get USDC.e balance
+  const { data: usdceBalance, isLoading: usdceBalanceLoading } = useBalance({
+    address,
+    token: USDCE_ADDRESS,
+  });
+
   useEffect(() => {
     if (status === "success") {
       const sentAmount = amount;
@@ -54,13 +60,7 @@ export default function ProfileClient() {
         description: "Sending USDC.e to agent",
       });
     }
-  }, [status]);
-
-  // Get USDC.e balance
-  const { data: usdceBalance, isLoading: usdceBalanceLoading } = useBalance({
-    address,
-    token: USDCE_ADDRESS,
-  });
+  }, [status, amount, data, error, toast, usdceBalance?.symbol]);
 
   // Get agent's USDC.e balance
   const { data: agentBalance, isLoading: agentBalanceLoading } = useBalance({
@@ -83,7 +83,7 @@ export default function ProfileClient() {
         args: [AGENT_ADDRESS, parseUnits(amount || "0", 6)],
         address: USDCE_ADDRESS,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Transfer failed",
         description: "Failed to send USDC.e to agent",
@@ -107,7 +107,7 @@ export default function ProfileClient() {
       } else {
         throw new Error(result.message);
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to withdraw funds",
@@ -135,7 +135,7 @@ export default function ProfileClient() {
 
           <div>
             <p className="text-sm text-muted-foreground">
-              Agent's USDC.e Balance
+              Agent&apos;s USDC.e Balance
             </p>
             {agentBalanceLoading || !agentBalance ? (
               <Skeleton className="w-20 h-4" />

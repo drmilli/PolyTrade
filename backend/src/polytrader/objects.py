@@ -217,7 +217,6 @@ class SimpleEvent(BaseModel):
     restricted: bool
     new: bool
     featured: bool
-    restricted: bool  # duplicated field in original code
     markets: str
 
 

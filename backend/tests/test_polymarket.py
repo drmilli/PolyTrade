@@ -52,7 +52,8 @@ async def test_get_random_market_by_token_id():
     # e.g. '["12345","67890"]'
     token_ids = []
     try:
-        token_ids = eval(random_market.clob_token_ids)  # or ast.literal_eval
+        import ast
+        token_ids = ast.literal_eval(random_market.clob_token_ids)
     except Exception:
         pytest.skip("Failed to parse clob_token_ids. Skipping test.")
 

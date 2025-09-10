@@ -172,7 +172,15 @@ export async function getGammaMarkets(
   const url = `https://gamma-api.polymarket.com/markets?${params}`;
 
   try {
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    
+    const response = await fetch(url, {
+      next: { revalidate: 60 }, // Cache for 60 seconds
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.error("HTTP error! status:", response.status);
@@ -180,6 +188,9 @@ export async function getGammaMarkets(
     }
 
     const rawData = await response.json();
+    
+    console.log(`Gamma API returned ${rawData.length} markets`);
+    console.log("First 3 markets:", rawData.slice(0, 3));
 
     // log all categories for each market if they exist
     for (const market of rawData) {
@@ -225,10 +236,18 @@ export async function getGammaMarkets(
     // console.log(data.markets.slice(0, 5));
 
     const frontendMarkets = mapToFrontendMarkets(data);
+    
+    console.log(`Processed ${frontendMarkets.length} frontend markets`);
+    console.log("Sample frontend market:", frontendMarkets[0]);
 
     return { markets: frontendMarkets };
   } catch (error) {
-    console.error("Error fetching Gamma markets:", error);
-    throw error;
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.warn("Gamma markets request timed out, returning empty results");
+    } else {
+      console.error("Error fetching Gamma markets:", error);
+    }
+    // Return empty markets array instead of throwing to prevent app crash
+    return { markets: [] };
   }
 }

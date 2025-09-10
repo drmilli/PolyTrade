@@ -7,7 +7,7 @@
 from dataclasses import dataclass, field
 from typing import Annotated, Any, List, Optional, Dict, Union, Literal
 from pydantic import BaseModel, Field, field_validator
-from langchain.schema import BaseMessage
+from langchain_core.messages import BaseMessage
 from langgraph.graph import add_messages
 
 

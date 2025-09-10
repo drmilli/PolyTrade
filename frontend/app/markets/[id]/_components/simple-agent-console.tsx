@@ -16,12 +16,10 @@ interface StreamingAgentConsoleProps {
 }
 
 export default function SimpleAgentConsole({
-  // @ts-ignore
-  streamOutput,
   isStreaming,
   agentEvents,
   onTradeConfirmation,
-}: StreamingAgentConsoleProps) {
+}: Omit<StreamingAgentConsoleProps, 'streamOutput'>) {
   return (
     <div className="rounded-xl border bg-card p-6 space-y-4 h-full">
       <h2 className="text-xl font-semibold">Agent Analysis</h2>
@@ -31,7 +29,7 @@ export default function SimpleAgentConsole({
           <div key={idx} className="mb-2">
             <strong>{event.name}:</strong>
             <pre className="whitespace-pre-wrap break-words">
-              {JSON.stringify(event.data, null, 2)}
+              {JSON.stringify(event.data || {}, null, 2)}
             </pre>
           </div>
         ))}

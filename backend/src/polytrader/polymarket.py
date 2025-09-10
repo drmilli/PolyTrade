@@ -5,7 +5,6 @@
 import ast
 from dataclasses import dataclass
 import os
-import pdb
 import time
 from typing import Any
 
@@ -465,7 +464,6 @@ def gamma():
                 markets.append(SimpleMarket(**market_data))
             except Exception as err:
                 print(f"error {err} for market {id}")  # T201 left
-        pdb.set_trace()
     else:
         raise Exception()
 

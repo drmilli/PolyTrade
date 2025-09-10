@@ -20,7 +20,7 @@ from langgraph.prebuilt import InjectedState
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 from langchain_exa import ExaSearchResults
-from langchain.schema import SystemMessage, AIMessage
+from langchain_core.messages import SystemMessage, AIMessage
 from langchain_core.messages import ToolMessage
 from datetime import datetime
 from firecrawl import FirecrawlApp

@@ -7,7 +7,7 @@ import { BarChart3Icon, TimerIcon, DollarSignIcon } from "lucide-react";
 import { streamAgentAnalysis } from "@/lib/actions/agent/stream-agent-analysis";
 import { AgentEvent } from "@/types/agent-stream-types";
 import { handleInterrupt } from "@/lib/actions/agent/handle-interruption";
-import { AdvancedMarket, Outcome } from "@/lib/actions/polymarket/getMarkets";
+import { AdvancedMarket } from "@/lib/actions/polymarket/getMarkets";
 import StreamingAgentConsole from "./streaming-agent-console";
 
 interface MarketDetailClientProps {
@@ -23,7 +23,7 @@ export default function MarketDetailClient({
 
   const [loading, setLoading] = useState<boolean>(true);
   const [agentStarted, setAgentStarted] = useState<boolean>(false);
-  const [streamOutput, setStreamOutput] = useState<string[]>([]);
+  const [, setStreamOutput] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [agentEvents, setAgentEvents] = useState<AgentEvent[]>([]);
@@ -47,20 +47,23 @@ export default function MarketDetailClient({
         market?.tokens || []
       );
       setStreamConfig(config);
-      let rawStreamData = [];
+      const rawStreamData = [];
 
       // Keep track of successful reflections
       const successfulReflections = new Set<string>();
 
       for await (const chunk of stream) {
         rawStreamData.push(chunk);
+        console.log("Received chunk:", JSON.stringify(chunk, null, 2));
 
         // Skip metadata events
         if (chunk.event === "metadata") continue;
 
         if (chunk.event === "updates" && chunk.data) {
           // Process each key in the data object as a separate event
+          console.log("Processing chunk.data:", chunk.data);
           Object.entries(chunk.data).forEach(([eventName, eventData]) => {
+            console.log(`Processing event: ${eventName}`, eventData);
             // Check if this is a successful reflection event
             if (
               eventName.startsWith("reflect_on_") &&
@@ -86,7 +89,8 @@ export default function MarketDetailClient({
               eventName.startsWith("reflect_on_") ||
               !successfulReflections.has(baseEventName)
             ) {
-              setAgentEvents((prev) => [
+              console.log(`Adding event to state: ${eventName}`, eventData);
+            setAgentEvents((prev) => [
                 ...prev,
                 {
                   name: eventName,
@@ -102,7 +106,7 @@ export default function MarketDetailClient({
 
       if (rawStreamData[rawStreamData.length - 1].data.__interrupt__) {
         console.log("Interrupt detected");
-        const lastChunk = rawStreamData[rawStreamData.length - 1];
+        // const lastChunk = rawStreamData[rawStreamData.length - 1];
         setStreamOutput((prev) => [...prev]);
         return;
       }
@@ -128,7 +132,7 @@ export default function MarketDetailClient({
     setIsStreaming(true);
     try {
       const stream = await handleInterrupt(decision, streamConfig);
-      let rawStreamData = [];
+      const rawStreamData = [];
 
       for await (const chunk of stream) {
         rawStreamData.push(chunk);
@@ -137,11 +141,11 @@ export default function MarketDetailClient({
 
         if (chunk.event === "updates" && chunk.data) {
           Object.entries(chunk.data).forEach(([eventName, eventData]) => {
-            const eventInfo = {
-              name: eventName,
-              data: eventData as Record<string, any>,
-              timestamp: new Date().toISOString(),
-            };
+            // const eventInfo = {
+            //   name: eventName,
+            //   data: eventData as Record<string, any>,
+            //   timestamp: new Date().toISOString(),
+            // };
 
             setAgentEvents((prev) => [
               ...prev,
@@ -187,6 +191,7 @@ export default function MarketDetailClient({
         <div className="space-y-6">
           <div className="flex items-start gap-6">
             <div className="w-24 h-24 rounded-lg overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={market.icon}
                 alt={market.question}
@@ -223,7 +228,7 @@ export default function MarketDetailClient({
             <div className="rounded-xl border bg-card p-6">
               <h2 className="text-xl font-semibold mb-4">Current Prices</h2>
               <div className="space-y-4">
-                {market.outcomes.map(({ outcome, price }, index: number) => (
+                {market.outcomes.map(({ outcome, price }) => (
                   <div
                     key={outcome}
                     className="flex items-center justify-between"
@@ -264,6 +269,7 @@ export default function MarketDetailClient({
           <div className="space-y-6">
             <div className="rounded-xl border bg-card p-6">
               <div className="flex items-start gap-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={market.icon}
                   alt={market.question}
@@ -306,7 +312,6 @@ export default function MarketDetailClient({
               <div className="text-red-500">{error}</div>
             ) : (
               <StreamingAgentConsole
-                streamOutput={streamOutput}
                 isStreaming={isStreaming}
                 agentEvents={agentEvents}
                 onTradeConfirmation={handleTradeConfirmation}

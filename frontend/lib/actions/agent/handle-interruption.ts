@@ -1,6 +1,6 @@
 "use server";
 
-import { Client, Command, Config } from "@langchain/langgraph-sdk";
+import { Client, Config } from "@langchain/langgraph-sdk";
 
 const DEPLOYMENT_URL = process.env.LANGGRAPH_DEPLOYMENT_URL;
 const ASSISTANT_ID = "polytrader";
@@ -18,7 +18,7 @@ export async function handleInterrupt(decision: "YES" | "NO", config: Config) {
       throw new Error("Thread ID is required");
     }
 
-    let t = await client.threads.updateState(threadId, {
+    const t = await client.threads.updateState(threadId, {
       values: {
         user_confirmation: decision === "YES",
       },

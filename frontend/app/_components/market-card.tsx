@@ -6,11 +6,11 @@
 
 import React from "react";
 import Link from "next/link";
-import { Market } from "@/lib/actions/polymarket/getMarkets";
+import { AdvancedMarket } from "@/lib/actions/polymarket/getMarkets";
 import { format } from "date-fns";
 
 interface MarketCardProps {
-  market: Market;
+  market: AdvancedMarket;
 }
 
 export default function MarketCard({ market }: MarketCardProps) {
@@ -19,11 +19,14 @@ export default function MarketCard({ market }: MarketCardProps) {
       <div className="rounded-xl border bg-card p-6 hover:shadow-lg transition-all hover:scale-[1.02]">
         <div className="flex items-start gap-4 mb-4">
           {market.icon && (
-            <img
-              src={market.icon}
-              alt={market.question}
-              className="w-12 h-12 rounded-lg object-cover"
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={market.icon}
+                alt={market.question}
+                className="w-12 h-12 rounded-lg object-cover"
+              />
+            </>
           )}
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-semibold mb-2 line-clamp-2">

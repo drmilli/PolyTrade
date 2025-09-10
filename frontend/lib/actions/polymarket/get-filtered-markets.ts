@@ -76,7 +76,7 @@ export async function getFilteredMarkets(filters: Partial<MarketFilters>) {
   const minVolume24hr = volume24hrMin ? parseFloat(volume24hrMin) : 0;
 
   // Filter out markets based on volume and 24h volume
-  let filteredMarkets = allMarkets.filter((m) => {
+  const filteredMarkets = allMarkets.filter((m) => {
     // parse volume
     const vol = parseFloat(m.volume || "0");
     const vol24hr = (m.volume24hrAmm || 0) + (m.volume24hrClob || 0);

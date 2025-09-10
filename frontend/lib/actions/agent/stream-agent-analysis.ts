@@ -9,9 +9,22 @@ const ASSISTANT_ID = "polytrader";
 export async function streamAgentAnalysis(marketId: number, tokens: Token[]) {
   try {
     console.log("DEPLOYMENT_URL", DEPLOYMENT_URL);
-    const client = new Client({ apiUrl: DEPLOYMENT_URL! });
-
+    
+    if (!DEPLOYMENT_URL) {
+      throw new Error("LANGGRAPH_DEPLOYMENT_URL environment variable is not set");
+    }
+    
+    const client = new Client({ apiUrl: DEPLOYMENT_URL });
     console.log("client", client);
+
+    // Test backend connection
+    try {
+      const thread = await client.threads.create();
+      console.log("Successfully created thread:", thread.thread_id);
+    } catch (connectionError) {
+      console.error("Failed to connect to LangGraph backend:", connectionError);
+      throw new Error(`Backend connection failed: ${connectionError}`);
+    }
 
     const thread = await client.threads.create();
 

@@ -41,3 +41,20 @@ export interface AgentRunData {
     };
   };
 }
+
+export interface AgentBalance {
+  usdcBalance: string;
+  usdceBalance: string;
+}
+
+export interface WithdrawResult {
+  success: boolean;
+  amount: string;
+  hash: string;
+}
+
+export interface DepositResult {
+  success: boolean;
+  amount: string;
+  hash: string;
+}

@@ -30,7 +30,7 @@ class Configuration:
     """
 
     model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default="openai/o3-mini",
+        default="openai/gpt-4o-mini",
         metadata={
             "description": "The name of the language model to use for the agent. "
             "Should be in the form: provider/model-name."
