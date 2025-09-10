@@ -1,9 +1,9 @@
-"use client";
+"use server";
 
 import { Token } from "../polymarket/getMarkets";
 
 // Mock data to simulate agent events
-export function mockAgentStream(marketId: number, tokens: Token[]) {
+export async function mockAgentStream(marketId: number, tokens: Token[]) {
   const events = [
     {
       event: "updates",

@@ -17,7 +17,7 @@ export async function streamAgentAnalysis(marketId: number, tokens: Token[]) {
     if (USE_MOCK) {
       console.log("Using mock agent stream for testing");
       return {
-        stream: mockAgentStream(marketId, tokens),
+        stream: await mockAgentStream(marketId, tokens),
         config: { configurable: { thread_id: `mock-${Date.now()}` } },
       };
     }
@@ -37,7 +37,7 @@ export async function streamAgentAnalysis(marketId: number, tokens: Token[]) {
       console.error("Failed to connect to LangGraph backend:", connectionError);
       console.log("Falling back to mock stream");
       return {
-        stream: mockAgentStream(marketId, tokens),
+        stream: await mockAgentStream(marketId, tokens),
         config: { configurable: { thread_id: `fallback-${Date.now()}` } },
       };
     }
@@ -68,7 +68,7 @@ export async function streamAgentAnalysis(marketId: number, tokens: Token[]) {
     console.error("Error in streamAgentAnalysis:", error);
     console.log("Falling back to mock stream due to error");
     return {
-      stream: mockAgentStream(marketId, tokens),
+      stream: await mockAgentStream(marketId, tokens),
       config: { configurable: { thread_id: `error-fallback-${Date.now()}` } },
     };
   }
