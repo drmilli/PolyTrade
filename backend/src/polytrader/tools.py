@@ -843,4 +843,4 @@ async def deep_research(
         visited_urls=research_results["visitedUrls"]
     )
     
-    return research_result.model_dump_json()
+    return research_result.model_dump()

@@ -32,6 +32,7 @@ class Token(BaseModel):
     outcome: str
     """The outcome of the token."""
 
+
 class TradeDecision(BaseModel):
     """Represents a trade decision for a binary market."""
     side: Literal["BUY", "SELL", "NO_TRADE"]
@@ -41,6 +42,16 @@ class TradeDecision(BaseModel):
         description="The outcome to trade (YES/NO). Required for BUY/SELL, optional for NO_TRADE."
     )
     """The outcome to trade (YES/NO). Required for BUY/SELL, optional for NO_TRADE."""
+    market_id: str = Field(description="The market ID (as string)")
+    """The market ID for this trade decision."""
+    token_id: str = Field(description="The token ID (as string)")
+    """The token ID for this trade decision."""
+    size: float = Field(description="The trade size")
+    """The size of the trade."""
+    reason: str = Field(description="Reason for the trade decision")
+    """Detailed reasoning for the trade decision."""
+    confidence: float = Field(ge=0.0, le=1.0, description="Confidence level (0-1)")
+    """Confidence level in the trade decision."""
 
     @field_validator('outcome')
     @classmethod
@@ -60,12 +71,13 @@ class TradeDecision(BaseModel):
             return "NO_TRADE"
         return f"{self.side}_{self.outcome}"
 
+
 @dataclass(kw_only=True)
 class InputState:
     """Defines initial input to the graph."""
 
-    market_id: str  # Changed from int to str to handle large numbers safely
-    """The market id of the market."""
+    market_id: str  # Always use string to handle large numbers safely
+    """The market id of the market (as string to handle large integers)."""
     custom_instructions: Optional[str] = None
     """Custom instructions for the agent."""
     extraction_schema: dict[str, Any] = field(

@@ -52,6 +52,7 @@ export interface AgentMessage {
   example?: boolean;
   tool_calls?: ToolCall[];
   invalid_tool_calls?: unknown[];
+  status?: string; // Add status field for reflection messages
 }
 
 export interface ToolCall {
@@ -116,6 +117,7 @@ export interface AnalysisInfo {
 
 /**
  * The data for "trade_info" within the "trade_agent" node.
+ * Updated to match backend TradeDecision model exactly.
  */
 export interface TradeInfo {
   side: "BUY" | "SELL" | "NO_TRADE";
@@ -125,7 +127,7 @@ export interface TradeInfo {
   size: number;
   reason: string;
   confidence: number;
-  trade_evaluation_of_market_data: string;
+  trade_evaluation_of_market_data?: string;
 }
 
 /**
@@ -144,6 +146,16 @@ export interface AgentEvent {
     external_research_info?: ExternalResearchInfo;
     analysis_info?: AnalysisInfo;
     trade_info?: TradeInfo;
+    market_data?: Record<string, any>; // Add market_data field
+    order_response?: {
+      orderID: string;
+      takingAmount: string;
+      makingAmount: string;
+      status: string;
+      transactionsHashes: string[];
+      success: boolean;
+      errorMsg?: string;
+    };
     [key: string]: any;
   };
 }

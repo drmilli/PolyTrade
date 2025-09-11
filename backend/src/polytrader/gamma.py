@@ -178,8 +178,29 @@ class GammaMarketClient:
     def get_market(self, market_id: int) -> dict:
         url = self.gamma_markets_endpoint + "/" + str(market_id)
         print(url)
-        response = httpx.get(url)
-        return response.json()
+        
+        # Add timeout and retry logic
+        max_retries = 3
+        timeout = 30.0
+        
+        for attempt in range(max_retries):
+            try:
+                response = httpx.get(url, timeout=timeout)
+                response.raise_for_status()
+                return response.json()
+            except (httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+                print(f"Timeout on attempt {attempt + 1}/{max_retries}: {e}")
+                if attempt == max_retries - 1:
+                    print(f"All {max_retries} attempts failed due to timeout")
+                    raise
+            except httpx.HTTPStatusError as e:
+                print(f"HTTP error on attempt {attempt + 1}/{max_retries}: {e}")
+                if attempt == max_retries - 1:
+                    raise
+            except Exception as e:
+                print(f"Unexpected error on attempt {attempt + 1}/{max_retries}: {e}")
+                if attempt == max_retries - 1:
+                    raise
 
 
 if __name__ == "__main__":

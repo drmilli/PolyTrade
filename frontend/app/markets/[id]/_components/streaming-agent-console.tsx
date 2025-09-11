@@ -10,6 +10,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import ResearchCard from "@/components/research-card";
+// import { AgentStreamErrorBoundary } from "@/components/error-boundary";
 
 // Import the newly created types
 import {
@@ -21,6 +22,11 @@ import {
   ReflectionArtifact,
 } from "@/types/agent-stream-types";
 import TradeExecutionCard from "@/components/trade-execution-card";
+import {
+  validateAgentEvent,
+  DataValidationError,
+  safeJsonParse,
+} from "@/lib/utils/data-validation";
 
 /**
  * Each event from the agent's streamed updates is stored in `agentEvents`.
@@ -112,43 +118,66 @@ export default function StreamingAgentConsole({
     }
   }, [agentEvents]);
 
-  // Process events to update research and trade data
+  // Process events to update research and trade data with validation
   useEffect(() => {
     agentEvents.forEach((event) => {
-      if (event.name === "research_tools" && event.data?.messages?.[0]) {
-        try {
-          const data = JSON.parse(event.data?.messages?.[0]?.content || '{}');
-          setResearchData({
-            report: data.report,
-            learnings: data.learnings,
-            visited_urls: data.visited_urls,
-          });
-        } catch (e) {
-          console.error("Failed to parse research data:", e);
-        }
-      }
-
-      if (event.name === "process_human_input" && event.data?.messages?.[0]) {
-        try {
-          const content = event.data?.messages?.[0]?.content || '';
-          if (content.includes("Trade executed successfully")) {
-            const match = content.match(/Order response: ({.*})/);
-            if (match) {
-              const orderData = JSON.parse(match[1].replace(/'/g, '"'));
-              setTradeData(orderData);
-
-              // Show toast notification
-              toast({
-                title: "Trade Executed Successfully",
-                description: `Order ${orderData.orderID.slice(
-                  0,
-                  8
-                )}... has been ${orderData.status}`,
+      try {
+        // Validate event structure
+        const validatedEvent = validateAgentEvent(event);
+        
+        if (validatedEvent.name === "research_tools" && validatedEvent.data?.messages?.[0]) {
+          try {
+            const data = safeJsonParse(validatedEvent.data.messages[0].content || '{}', {}) as Record<string, unknown>;
+            if (data && typeof data === 'object' && data.report && data.learnings) {
+              setResearchData({
+                report: String(data.report),
+                learnings: Array.isArray(data.learnings) ? data.learnings : [],
+                visited_urls: Array.isArray(data.visited_urls) ? data.visited_urls : [],
               });
             }
+          } catch (e) {
+            console.warn("Failed to parse research data:", e);
           }
-        } catch (e) {
-          console.error("Failed to parse trade data:", e);
+        }
+
+        if (validatedEvent.name === "process_human_input" && validatedEvent.data?.messages?.[0]) {
+          try {
+            const content = validatedEvent.data.messages[0].content || '';
+            if (content.includes("Trade executed successfully")) {
+              const match = content.match(/Order response: ({.*})/);
+              if (match) {
+                const orderData = safeJsonParse(match[1].replace(/'/g, '"'), {}) as Record<string, unknown>;
+                if (orderData && typeof orderData === 'object' && orderData.orderID) {
+                  setTradeData({
+                    orderID: String(orderData.orderID),
+                    takingAmount: String(orderData.takingAmount || '0'),
+                    makingAmount: String(orderData.makingAmount || '0'),
+                    status: String(orderData.status || 'unknown'),
+                    transactionsHashes: Array.isArray(orderData.transactionsHashes) ? orderData.transactionsHashes.map(String) : [],
+                    success: typeof orderData.success === 'boolean' ? orderData.success : true,
+                    errorMsg: orderData.errorMsg ? String(orderData.errorMsg) : undefined,
+                  });
+
+                  // Show toast notification
+                  toast({
+                    title: "Trade Executed Successfully",
+                    description: `Order ${String(orderData.orderID).slice(
+                      0,
+                      8
+                    )}... has been ${orderData.status || 'processed'}`,
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            console.warn("Failed to parse trade data:", e);
+          }
+        }
+      } catch (validationError) {
+        if (validationError instanceof DataValidationError) {
+          console.warn(`Data validation error for event ${event.name}:`, validationError.message);
+        } else {
+          console.error("Unexpected error processing event:", validationError);
         }
       }
     });
@@ -464,13 +493,27 @@ function ToolCallsCard({ messages }: { messages: AgentMessage[] }) {
 /** 3) research_agent node */
 function ResearchAgentCard({ data }: { data: AgentEvent["data"] }) {
   const ext = data?.external_research_info as ExternalResearchInfo | undefined;
+  const researchReport = data?.research_report;
   const messages = data?.messages || [];
 
+  console.log("ResearchAgentCard - data:", data);
+  console.log("research_report:", researchReport);
   console.log("messages", messages);
 
   return (
     <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">
       <h3 className="font-bold text-lg text-primary mb-2">Research Agent</h3>
+
+      {/* Show research report if available */}
+      {researchReport && (
+        <div className="mb-4">
+          <ResearchCard
+            report={researchReport.report}
+            learnings={researchReport.learnings}
+            visited_urls={researchReport.visited_urls}
+          />
+        </div>
+      )}
 
       <ToolCallsCard messages={messages} />
       {ext ? (
@@ -507,9 +550,9 @@ function ResearchAgentCard({ data }: { data: AgentEvent["data"] }) {
             </Accordion>
           )}
         </>
-      ) : (
+      ) : !researchReport ? (
         <ToolCallsCard messages={messages} />
-      )}
+      ) : null}
     </div>
   );
 }

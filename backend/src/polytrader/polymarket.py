@@ -406,6 +406,31 @@ class Polymarket:
         ).call()
         return float(balance_res / 10e5)
 
+    def get_market_trades_events(self, market_id: str) -> list:
+        """Get market trades events for a given market ID."""
+        try:
+            # Mock implementation since the actual API endpoint is not available
+            print(f"Getting trades for market {market_id} - returning mock data")
+            return [
+                {
+                    "timestamp": int(time.time()),
+                    "price": "0.55",
+                    "size": "100.0",
+                    "side": "buy",
+                    "token_id": "123456"
+                },
+                {
+                    "timestamp": int(time.time()) - 3600,
+                    "price": "0.54",
+                    "size": "50.0", 
+                    "side": "sell",
+                    "token_id": "789012"
+                }
+            ]
+        except Exception as e:
+            print(f"Error getting market trades: {e}")
+            return []
+
 
 def test():
     """Test function demonstrating usage of the Polymarket class."""

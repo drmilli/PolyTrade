@@ -3,7 +3,7 @@
 import { Token } from "../polymarket/getMarkets";
 
 // Mock data to simulate agent events
-export async function mockAgentStream(marketId: number, tokens: Token[]) {
+export async function* mockAgentStream(marketId: number, tokens: Token[]) {
   const events = [
     {
       event: "updates",
@@ -20,7 +20,7 @@ export async function mockAgentStream(marketId: number, tokens: Token[]) {
             tokens: tokens,
             volume: 125000,
             liquidity: 85000,
-            current_prices: tokens.map((t, index) => ({ 
+            current_prices: tokens.map((t) => ({ 
               outcome: t.outcome, 
               price: t.outcome === "YES" ? "0.65" : "0.35" 
             }))
@@ -156,13 +156,9 @@ export async function mockAgentStream(marketId: number, tokens: Token[]) {
     }
   ];
 
-  return {
-    async *[Symbol.asyncIterator]() {
-      for (const event of events) {
-        yield event;
-        // Add delay between events
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-    }
-  };
+  for (const event of events) {
+    yield event;
+    // Add delay between events
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
 }

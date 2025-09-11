@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
 import { Toaster } from "@/components/ui/toaster";
@@ -11,11 +10,6 @@ import { headers } from "next/headers";
 import { cookieToInitialState } from "wagmi";
 
 import { wagmiConfig } from "@/lib/wagmiConfig";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Polymarket AI Dashboard",
@@ -35,7 +29,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} antialiased`}
+        className="antialiased"
       >
         <PrivyProvider>
           <WagmiProviderWrapper initialState={initialState}>
