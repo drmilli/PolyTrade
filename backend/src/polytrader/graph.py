@@ -933,7 +933,13 @@ Your reasoning should clearly explain why you chose that particular outcome.
                     reason=str(trade_info.get("reason", "")),
                     confidence=float(trade_info.get("confidence", 0))
                 )
+                # Store trade decision in state
                 state.trade_decision = trade_decision_obj
+                # Add debug logging
+                print(f"TRADE_AGENT_NODE - TradeDecision found: {trade_decision_obj}")
+                print(f"TRADE_AGENT_NODE - State now contains: trade_decision={state.trade_decision}")
+                # Force emit the trade decision event
+                print(f"EMITTING TRADE DECISION EVENT: {trade_decision_obj}")
             except ValueError as e:
                 print(f"Invalid trade decision: {str(e)}")
                 state.trade_decision = None
