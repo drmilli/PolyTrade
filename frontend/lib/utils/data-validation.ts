@@ -236,26 +236,34 @@ export function safeJsonParse(jsonString: string, fallback: any): any {
 /**
  * Validates stream chunk structure
  */
-export function validateStreamChunk(chunk: unknown): { event: string; data: Record<string, any> } | null {
-  if (!chunk || typeof chunk !== 'object') {
-    console.warn('Invalid stream chunk: not an object', chunk);
-    return null;
+export function validateStreamChunk(chunk: any): boolean {
+  try {
+    // Handle LangGraph streaming chunk formats
+    if (chunk && typeof chunk === 'object') {
+      // LangGraph "updates" format: { "node_name": { "messages": [...], "other_data": ... } }
+      if (chunk.updates && typeof chunk.updates === 'object') {
+        return true;
+      }
+      
+      // LangGraph "values" format: { "messages": [...], "other_state": ... }
+      if (chunk.values && typeof chunk.values === 'object') {
+        return true;
+      }
+      
+      // LangGraph "metadata" format
+      if (chunk.metadata) {
+        return true;
+      }
+      
+      // Standard chunk format with event and data (allow null data)
+      if (chunk.event) {
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.warn('Chunk validation error:', error);
+    return false;
   }
-
-  const chunkData = chunk as Record<string, any>;
-
-  if (!chunkData.event || typeof chunkData.event !== 'string') {
-    console.warn('Invalid stream chunk: missing or invalid event field', chunkData);
-    return null;
-  }
-
-  if (!chunkData.data || typeof chunkData.data !== 'object') {
-    console.warn('Invalid stream chunk: missing or invalid data field', chunkData);
-    return null;
-  }
-
-  return {
-    event: chunkData.event,
-    data: chunkData.data,
-  };
 }

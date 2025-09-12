@@ -60,7 +60,8 @@ export default function MarketDetailClient({
         // Skip metadata events
         if (chunk.event === "metadata") continue;
 
-        if (chunk.event === "updates" && chunk.data) {
+        // Handle both "updates" and "values" events from LangGraph
+        if ((chunk.event === "updates" || chunk.event === "values") && chunk.data) {
           // Process each key in the data object as a separate event
           console.log("Processing chunk.data:", chunk.data);
           Object.entries(chunk.data).forEach(([eventName, eventData]) => {

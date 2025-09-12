@@ -108,15 +108,54 @@ export default function StreamingAgentConsole({
 
   // Check for trade events that need confirmation
   useEffect(() => {
-    const lastEvent = agentEvents[agentEvents.length - 1];
-    if (lastEvent?.name === "trade_agent" && lastEvent?.data?.trade_info) {
-      const tradeInfo = lastEvent.data.trade_info as TradeInfo;
-      if (tradeInfo.side !== "NO_TRADE") {
-        setTradeToConfirm(tradeInfo);
-        setShowTradeConfirmation(true);
+    console.log("=== TRADE POPUP DEBUG ===");
+    console.log("Total agentEvents:", agentEvents.length);
+    
+    agentEvents.forEach((event, index) => {
+      console.log(`Event ${index}:`, {
+        name: event.name,
+        hasData: !!event.data,
+        dataKeys: event.data ? Object.keys(event.data) : [],
+        trade_decision: event.data?.trade_decision,
+        trade_info: event.data?.trade_info
+      });
+      
+      // Check for trade decision in complete state data
+      if (event.data?.trade_decision) {
+        console.log("🎯 FOUND trade_decision:", event.data.trade_decision);
+        const tradeDecision = event.data.trade_decision;
+        if (tradeDecision.side && tradeDecision.side !== "NO_TRADE") {
+          console.log("🚀 TRIGGERING POPUP for decision:", tradeDecision);
+          setTradeToConfirm(tradeDecision);
+          setShowTradeConfirmation(true);
+          return; // Exit early once we find a trade
+        }
       }
-    }
-  }, [agentEvents]);
+      
+      // Legacy check for trade_info
+      if (event.name === "trade_agent" && event.data?.trade_info) {
+        console.log("🎯 FOUND trade_info:", event.data.trade_info);
+        const tradeInfo = event.data.trade_info as TradeInfo;
+        if (tradeInfo.side && tradeInfo.side !== "NO_TRADE") {
+          console.log("🚀 TRIGGERING POPUP for info:", tradeInfo);
+          setTradeToConfirm(tradeInfo);
+          setShowTradeConfirmation(true);
+          return; // Exit early once we find a trade
+        }
+      }
+      
+      // Check for any trade-related data in any event
+      if (event.data && typeof event.data === 'object') {
+        const dataStr = JSON.stringify(event.data).toLowerCase();
+        if (dataStr.includes('trade') || dataStr.includes('buy') || dataStr.includes('sell')) {
+          console.log("🔍 Event contains trade-related data:", event);
+        }
+      }
+    });
+    
+    console.log("Current popup state:", { showTradeConfirmation, tradeToConfirm });
+    console.log("=== END TRADE POPUP DEBUG ===");
+  }, [agentEvents, showTradeConfirmation, tradeToConfirm]);
 
   // Process events to update research and trade data with validation
   useEffect(() => {
@@ -355,14 +394,30 @@ function AgentEventCard({
     case "reflect_on_trade":
       return <ReflectionCard data={data} agentType="Trade" />;
     case "process_human_input":
-      if (data.order_response) {
+      if (data && typeof data === 'object' && 'order_response' in data && data.order_response) {
         return <TradeExecutionCard orderData={data.order_response} />;
       } else {
         console.log("No order response found");
         return <div>No order response found</div>;
       }
+    case "analysis_tools":
+      return <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">
+        <h3 className="font-bold text-lg text-primary mb-2">Analysis Tools</h3>
+        <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
+      </div>;
+    case "trade_tools":
+      return <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">
+        <h3 className="font-bold text-lg text-primary mb-2">Trade Tools</h3>
+        <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
+      </div>;
+    case "human_confirmation":
+    case "human_confirmation_js":
+      return <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">
+        <h3 className="font-bold text-lg text-primary mb-2">Human Confirmation</h3>
+        <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
+      </div>;
     default:
-      // fallback
+      // fallback - log what we're getting
       console.log("Unknown node:", name);
       console.log("data", data);
       return (
@@ -691,7 +746,7 @@ function AnalysisAgentCard({ data }: { data: AgentEvent["data"] }) {
 
 /** 6) trade_agent node */
 function TradeAgentCard({ data }: { data: AgentEvent["data"] }) {
-  const tradeInfo = data.trade_info as TradeInfo | undefined;
+  const tradeInfo = data?.trade_info as TradeInfo | undefined;
   if (!tradeInfo) {
     return (
       <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">

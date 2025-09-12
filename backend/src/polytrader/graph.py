@@ -899,13 +899,22 @@ Your reasoning should clearly explain why you chose that particular outcome.
     raw_model = init_model(config)
     model = raw_model.bind_tools([trade, trade_decision_tool], tool_choice="any")
 
+    print("TRADE_AGENT_NODE - Starting execution")
+    print("TRADE_AGENT_NODE - Current state loop_step:", state.loop_step)
+    print("TRADE_AGENT_NODE - Market ID:", state.market_id)
+    
     response = await model.ainvoke(messages)
     if not isinstance(response, AIMessage):
         response = AIMessage(content=str(response))
 
+    print("TRADE_AGENT_NODE - Model response received")
+    print("TRADE_AGENT_NODE - Response has tool_calls:", hasattr(response, "tool_calls") and bool(response.tool_calls))
+
     trade_info = None
     if hasattr(response, "tool_calls") and response.tool_calls:
+        print("TRADE_AGENT_NODE - Processing tool calls:", len(response.tool_calls))
         for tool_call in response.tool_calls:
+            print("TRADE_AGENT_NODE - Tool call name:", tool_call.get("name"))
             if tool_call["name"] == "TradeDecision":
                 trade_info = tool_call["args"]
                 break
@@ -1262,8 +1271,9 @@ def route_after_research_agent(state: State, config: Optional[RunnableConfig] = 
     last_msg = state.messages[-1]
     print("state.research_report: ", state.research_report)
 
-    if state.loop_step > 3:
-        return "__end__"
+    # Remove early termination - let research complete properly
+    # if state.loop_step > 3:
+    #     return "__end__"
 
     # First check if we already have research results
     if state.research_report and not last_msg.additional_kwargs.get("improvement_instructions"):
@@ -1286,19 +1296,28 @@ def route_after_reflect_on_research(state: State, *, config: Optional[RunnableCo
     configuration = Configuration.from_runnable_config(config)
 
     last_msg = state.messages[-1] if state.messages else None
-    print("LAST MSG: ", last_msg)
+    print("ROUTE_AFTER_REFLECT_ON_RESEARCH - LAST MSG: ", last_msg)
+    print("ROUTE_AFTER_REFLECT_ON_RESEARCH - MSG TYPE: ", type(last_msg))
+    print("ROUTE_AFTER_REFLECT_ON_RESEARCH - MSG STATUS: ", getattr(last_msg, 'status', 'NO STATUS'))
+    
     if not isinstance(last_msg, ToolMessage):
+        print("ROUTE_AFTER_REFLECT_ON_RESEARCH - Not ToolMessage, returning research_agent")
         return "research_agent"
     
     if last_msg.status == "success":
+        print("ROUTE_AFTER_REFLECT_ON_RESEARCH - Success status, moving to analysis_agent")
         # Reset loop step when moving to analysis agent
         state.loop_step = 0
         return "analysis_agent"
     elif last_msg.status == "error":
+        print("ROUTE_AFTER_REFLECT_ON_RESEARCH - Error status, checking max loops")
         if state.loop_step >= configuration.max_loops:
+            print("ROUTE_AFTER_REFLECT_ON_RESEARCH - Max loops reached, ending")
             return "__end__"
+        print("ROUTE_AFTER_REFLECT_ON_RESEARCH - Returning to research_agent")
         return "research_agent"
     
+    print("ROUTE_AFTER_REFLECT_ON_RESEARCH - Default case, returning research_agent")
     return "research_agent"
 
 def route_after_analysis(state: State) -> Literal["analysis_agent", "analysis_tools", "reflect_on_analysis"]:
@@ -1325,31 +1344,48 @@ def route_after_reflect_on_analysis(state: State, *, config: Optional[RunnableCo
     configuration = Configuration.from_runnable_config(config)
 
     last_msg = state.messages[-1] if state.messages else None
+    print("ROUTE_AFTER_REFLECT_ON_ANALYSIS - LAST MSG: ", last_msg)
+    print("ROUTE_AFTER_REFLECT_ON_ANALYSIS - MSG TYPE: ", type(last_msg))
+    print("ROUTE_AFTER_REFLECT_ON_ANALYSIS - MSG STATUS: ", getattr(last_msg, 'status', 'NO STATUS'))
+    
     if not isinstance(last_msg, ToolMessage):
+        print("ROUTE_AFTER_REFLECT_ON_ANALYSIS - Not ToolMessage, returning analysis_agent")
         return "analysis_agent"
     
     if last_msg.status == "success":
+        print("ROUTE_AFTER_REFLECT_ON_ANALYSIS - Success status, moving to trade_agent")
         # Reset loop step when moving to trade agent
         state.loop_step = 0
         return "trade_agent"
     elif last_msg.status == "error":
+        print("ROUTE_AFTER_REFLECT_ON_ANALYSIS - Error status, checking max loops")
         if state.loop_step >= configuration.max_loops:
+            print("ROUTE_AFTER_REFLECT_ON_ANALYSIS - Max loops reached, ending")
             return "__end__"
+        print("ROUTE_AFTER_REFLECT_ON_ANALYSIS - Returning to analysis_agent")
         return "analysis_agent"
     
+    print("ROUTE_AFTER_REFLECT_ON_ANALYSIS - Default case, returning analysis_agent")
     return "analysis_agent"
 
 def route_after_trade(state: State) -> Literal["trade_agent", "reflect_on_trade", "trade_tools"]:
     """After trade agent, route to reflection if a trade decision was made."""
     last_msg = state.messages[-1] if state.messages else None
     
+    print("ROUTE_AFTER_TRADE - LAST MSG: ", last_msg)
+    print("ROUTE_AFTER_TRADE - MSG TYPE: ", type(last_msg))
+    
     if not isinstance(last_msg, AIMessage):
+        print("ROUTE_AFTER_TRADE - Not AIMessage, returning trade_agent")
         return "trade_agent"
     
     # Check if we have a TradeDecision tool call
     if last_msg.tool_calls and any(tc["name"] == "TradeDecision" for tc in last_msg.tool_calls):
+        print("ROUTE_AFTER_TRADE - TradeDecision found, moving to reflect_on_trade")
         return "reflect_on_trade"
     else:
+        print("ROUTE_AFTER_TRADE - No TradeDecision, checking for other tool calls")
+        print("ROUTE_AFTER_TRADE - Tool calls: ", last_msg.tool_calls if hasattr(last_msg, 'tool_calls') else 'None')
         return "trade_tools"
 
 def route_after_reflect_on_trade(state: State, *, config: Optional[RunnableConfig] = None) -> Literal["trade_agent", "human_confirmation", "human_confirmation_js", "__end__"]:
@@ -1440,3 +1476,7 @@ workflow.add_edge("process_human_input", "__end__")
 # Compile (LangGraph API handles persistence automatically)
 graph = workflow.compile()
 graph.name = "PolymarketAgent"
+
+def create_graph():
+    """Create and return the compiled graph for external use."""
+    return graph

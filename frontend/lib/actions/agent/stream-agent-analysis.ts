@@ -94,6 +94,7 @@ export async function streamAgentAnalysis({
           available_funds: availableFunds,
           from_js: true,
         },
+        streamMode: "values", // Use values mode to get complete state data
       }
     );
 

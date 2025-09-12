@@ -157,7 +157,8 @@ export interface AgentEvent {
       errorMsg?: string;
     };
     [key: string]: any;
-  };
+  } | null;
+  timestamp?: string;
 }
 
 /**

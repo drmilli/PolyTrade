@@ -330,7 +330,19 @@ async def analysis_get_historical_trends(
             
         market_question = state.market_data.get("question", "")
         outcomes = json.loads(state.market_data.get("outcomes", "[]"))
-        outcome_prices = json.loads(state.market_data.get("outcomePrices", "[]"))
+        
+        # Handle outcome_prices - convert from list to dict if needed
+        outcome_prices_raw = json.loads(state.market_data.get("outcomePrices", "[]"))
+        if isinstance(outcome_prices_raw, list):
+            # Convert list to dict with outcome names as keys
+            outcome_prices = {}
+            if len(outcome_prices_raw) == len(outcomes):
+                outcome_prices = {outcome: float(price) for outcome, price in zip(outcomes, outcome_prices_raw)}
+            else:
+                # Fallback to empty dict if mismatch
+                outcome_prices = {}
+        else:
+            outcome_prices = outcome_prices_raw if outcome_prices_raw else {}
         
         # Construct a more informative search query using market details
         query = f"News and analysis about: {market_question}"
